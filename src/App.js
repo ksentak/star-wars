@@ -1,65 +1,55 @@
 import { useState } from 'react';
-
 import './App.css';
-import axios from 'axios';
 
 const App = () => {
   const [movies, setMovies] = useState([]);
   const [planets, setPlanets] = useState([]);
 
-  const getMovieTitles = async () => {
-    try {
-      const res = await axios.get('https://www.swapi.tech/api/films');
+  const formatPlanets = (planets) =>
+    planets.map((planet) => ({
+      id: planet.result._id,
+      name: planet.result.properties.name,
+    }));
 
-      setMovies(res.data.result);
-    } catch (err) {
-      console.log(err);
-    }
+  const getMovieList = async () => {
+    const res = await fetch('https://www.swapi.tech/api/films');
+    const data = await res.json();
+
+    console.log(data);
+    setMovies(data?.result);
   };
 
-  const getMoviePlanets = async (planets) => {
-    setPlanets([]);
-    try {
-      axios.all(planets.map((planet) => axios.get(planet))).then((data) => {
-        console.log(data);
+  const getPlanets = async (planets) => {
+    const promises = planets.map((planet) => fetch(planet));
 
-        const planetNames = data.map(
-          (planet) => planet.data.result.properties.name,
-        );
+    const response = await Promise.all(promises);
+    const data = await Promise.all(response.map((res) => res.json()));
 
-        // const planet1 = data[0].data.result.properties.name;
-
-        // const planetArr = [];
-        // planetArr.push(planet1);
-
-        setPlanets(planetNames);
-      });
-
-      // Have an array of api calls to make
-      // Make each call and once I have them set planet state
-      // data.result.properties.name
-    } catch (err) {
-      console.log(err);
-    }
+    const formattedPlanets = formatPlanets(data);
+    setPlanets(formattedPlanets);
   };
 
   return (
     <div className='App'>
-      <h1>Hello Star Wars</h1>
-      <button onClick={getMovieTitles}>Get Movie Titles</button>
+      <h1>Star Wars API Practice</h1>
+      <button onClick={getMovieList}>Get Movie List</button>
 
-      {movies.length > 0 &&
-        movies.map((movie, index) => (
-          <button
-            key={index}
-            onClick={() => getMoviePlanets(movie.properties.planets)}
-          >
-            {movie.properties.title}
-          </button>
-        ))}
+      <div>
+        {movies.length > 0 &&
+          movies.map((movie) => (
+            <button
+              key={movie._id}
+              onClick={() => getPlanets(movie.properties.planets)}
+            >
+              {movie.properties.title}
+            </button>
+          ))}
+      </div>
 
-      {planets.length > 0 &&
-        planets.map((planet, index) => <div key={index}>{planet}</div>)}
+      <div>
+        {planets.length > 0 &&
+          planets.map((planet) => <div key={planet.id}>{planet.name}</div>)}
+      </div>
     </div>
   );
 };
